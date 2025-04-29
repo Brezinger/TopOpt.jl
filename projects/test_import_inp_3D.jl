@@ -2,6 +2,10 @@ using TopOpt
 using Makie
 using CairoMakie
 # using GLMakie
+using Suppressor
+
+using FromFile
+@from "new_problems.jl" import NewPointLoadCantilever
 
 using TimerOutputs
 
@@ -13,17 +17,21 @@ reset_timer!(to)
 # Define the problem
 E = 1.0 # Young’s modulus
 v = 0.3 # Poisson’s ratio
-f = 0.5; # downward force
+f = 1.0; # downward force
 
 # Parameter settings
-V = 0.5 # volume fraction
+V = 0.2 # volume fraction
 # xmin = 0.001 # minimum density
 xmin = 1e-6 # minimum density
-rmin = 0.04; # density filter radius
+rmin = sqrt(3); # density filter radius
 
-nels = (720, 240) # (720, 240) # (360, 120) # | (720, 240) 
-sizes = (3.0 / nels[1], 1.0 / nels[2])
-@timeit to "problem def" problem = HalfMBB(Val{:Linear}, nels, sizes, E, v, f);
+nels = (24, 12, 12)
+sizes = (1.0, 1.0, 1.0)
+@timeit to "problem def" 
+
+problem = NewPointLoadCantilever(
+    Val{:Linear}, nels, sizes, E, v, f
+);
 
 # Define a finite element solver
 @timeit to "penalty def" penalty = TopOpt.PowerPenalty(3.0)
@@ -43,7 +51,7 @@ end
     constr = x -> volfrac(filter(PseudoDensities(x))) - V
 end
 
-@timeit to "define problem" begin
+@timeit to "problem definition" begin
     x0 = fill(V, length(solver.vars))
     model = Model(obj)
     addvar!(model, zeros(length(x0)), ones(length(x0)))
@@ -55,15 +63,23 @@ end
     )
 end
 
-# Solve
-# initial solution, critical to set it to volfrac! (blame non-convexity :)
-@timeit to "simp run" r = optimize(model, alg, x0; options)
+@timeit to "simp run" r = optimize(model, alg, x0; options);
 
 # Print the timings in the default way
 println()
 show(to)
 
 @show obj(r.minimizer)
+
+output = @capture_out begin
+    show(to)
+    @show obj(r.minimizer)
+    @show constr(r.minimizer)
+end;
+
+open("jl-top3D125.matlab_$(nels).txt", "w") do io
+    write(io, output)
+end
 
 # Visualize the result using Makie.jl
 fig = visualize(
@@ -76,5 +92,10 @@ fig = visualize(
     default_support_scale=0.01,
     default_load_scale=0.01,
 )
-save("result.png", fig)
 Makie.display(fig)
+
+Makie.save("jl-top3D125.matlab__$(nels).png", fig)
+
+print("top3d125 done")
+
+TopOpt.save_mesh("jl-top3D125.matlab__$(nels).vtk", problem, r.minimizer)

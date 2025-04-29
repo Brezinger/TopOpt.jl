@@ -4,8 +4,8 @@ function extract_set!(
     sets[setname] = Int[]
     vector = sets[setname]
 
-    pattern_single = r"^(\d+)"
-    pattern_subset = r"^([^,]+)"
+    pattern_single = r"(?i)^(\d+)"
+    pattern_subset = r"(?i)^([^,]+)"
     line = readline(file)
     m = match(stopping_pattern, line)
     while m isa Nothing

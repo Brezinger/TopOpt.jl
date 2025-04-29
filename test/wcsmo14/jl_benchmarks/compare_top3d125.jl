@@ -25,7 +25,7 @@ V = 0.2 # volume fraction
 xmin = 1e-6 # minimum density
 rmin = sqrt(3); # density filter radius
 
-nels = (48, 24, 24)
+nels = (24, 12, 12)
 sizes = (1.0, 1.0, 1.0)
 @timeit to "problem def" problem = NewPointLoadCantilever(
     Val{:Linear}, nels, sizes, E, v, f
@@ -93,3 +93,7 @@ fig = visualize(
 Makie.display(fig)
 
 Makie.save("jl-top3D125.matlab__$(nels).png", fig)
+
+print("top3d125 done")
+
+TopOpt.save_mesh("jl-top3D125.matlab__$(nels).vtk", problem, r.minimizer)

@@ -5,8 +5,8 @@ function extract_dload!(
     ::Type{Val{dim}},
     offset::TI,
 ) where {TI,TF,dim}
-    pattern = r"(\d+)\s*,\s*P(\d+)\s*,\s*(\-?\d+\.\d*)"
-    dload_heading_pattern = r"\*DLOAD"
+    pattern = r"(?i)(\d+)\s*,\s*P(\d+)\s*,\s*(\-?\d+\.\d*)"
+    dload_heading_pattern = r"(?i)\*DLOAD"
 
     faceset_name = "DLOAD_SET_$(length(dloads)+1)"
     facesets[faceset_name] = Tuple{TI,TI}[]

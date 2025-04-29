@@ -35,5 +35,5 @@ makedocs(;
 # end
 
 if get(ENV, "CI", nothing) == "true"
-    deploydocs(; repo="github.com/JuliaTopOpt/TopOpt.jl.git", push_preview=true)
+    deploydocs(; repo="github.com/Brezinger/TopOpt.jl.git", push_preview=true)
 end

@@ -1,4 +1,6 @@
 using TopOpt
+using TopOpt.TopOptProblems: InpStiffness  # import the high-level INP reader
+using TopOpt.TopOptProblems, TopOpt.TopOptProblems.InputOutput.INP.Parser
 using Makie
 using CairoMakie
 # using GLMakie
@@ -13,17 +15,21 @@ reset_timer!(to)
 # Define the problem
 E = 1.0 # Young’s modulus
 v = 0.3 # Poisson’s ratio
-f = 0.5; # downward force
+f = 1.0; # downward force
 
 # Parameter settings
 V = 0.5 # volume fraction
 # xmin = 0.001 # minimum density
 xmin = 1e-6 # minimum density
-rmin = 0.04; # density filter radius
+rmin = 20; # density filter radius
 
-nels = (720, 240) # (720, 240) # (360, 120) # | (720, 240) 
-sizes = (3.0 / nels[1], 1.0 / nels[2])
-@timeit to "problem def" problem = HalfMBB(Val{:Linear}, nels, sizes, E, v, f);
+#nels = (300, 100)
+nels = (30, 10)
+sizes = (1.0, 1.0)
+@timeit to "problem def" problem_old = HalfMBB(Val{:Linear}, nels, sizes, E, v, f);
+filepath = joinpath(@__DIR__, "ownMBB.inp")
+content = extract_inp(filepath)
+@timeit to "problem def" problem = InpStiffness(content; keep_load_cells=false)
 
 # Define a finite element solver
 @timeit to "penalty def" penalty = TopOpt.PowerPenalty(3.0)
@@ -33,7 +39,8 @@ sizes = (3.0 / nels[1], 1.0 / nels[2])
 @timeit to "objective def" begin
     # Define compliance objective
     comp = Compliance(solver)
-    filter = DensityFilter(solver; rmin=rmin)
+    #filter = DensityFilter(solver; rmin=rmin)
+    filter = DensityFilter(Val(false), solver, rmin)
     obj = x -> comp(filter(PseudoDensities(x)))
 end
 
@@ -45,18 +52,18 @@ end
 
 @timeit to "define problem" begin
     x0 = fill(V, length(solver.vars))
+    nvar = length(solver.vars)
     model = Model(obj)
-    addvar!(model, zeros(length(x0)), ones(length(x0)))
-    add_ineq_constraint!(model, constr)
+    addvar!(model, zeros(nvar), ones(nvar))
+    add_ineq_constraint!(model, constr) 
     alg = MMA87()
+    tol = Tolerance(x=1e-3, f=1e-6, fabs=1e-3, frel=0.0, kkt=1e-3, infeas=1e-3)
     convcriteria = GenericCriteria()
     options = MMAOptions(;
-        maxiter=1000, tol=Tolerance(; x=1e-3, fabs=1e-3, frel=0.0, kkt=1e-3), convcriteria
+        maxiter=1000, tol=tol, convcriteria=convcriteria
     )
 end
 
-# Solve
-# initial solution, critical to set it to volfrac! (blame non-convexity :)
 @timeit to "simp run" r = optimize(model, alg, x0; options)
 
 # Print the timings in the default way
@@ -64,6 +71,7 @@ println()
 show(to)
 
 @show obj(r.minimizer)
+@show constr(r.minimizer)
 
 # Visualize the result using Makie.jl
 fig = visualize(
@@ -71,10 +79,12 @@ fig = visualize(
     topology=r.minimizer,
     default_exagg_scale=0.07,
     scale_range=10.0,
+    display_supports=false,
     vector_linewidth=3,
     vector_arrowsize=0.005,
     default_support_scale=0.01,
     default_load_scale=0.01,
 )
-save("result.png", fig)
 Makie.display(fig)
+
+Makie.save("test_import_MBB.png", fig)

@@ -17,7 +17,7 @@ problems = Any[
 ]
 problem_names = ["Cantilever beam", "Half MBB beam", "L-beam"]
 
-i = 1
+i = 3
 # for i in 1:length(problems)
 println(problem_names[i])
 problem = problems[i]

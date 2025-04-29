@@ -1,6 +1,8 @@
 using TopOpt.TopOptProblems.InputOutput.INP
 using Ferrite, Test
 
+print("run tests\n")
+
 cube = INP.Parser.import_inp(joinpath(@__DIR__, "testcube.inp"))
 dh = cube.dh
 grid = dh.grid
@@ -59,3 +61,5 @@ raw_inp = INP.Parser.extract_inp(joinpath(@__DIR__, "MBB.inp"))
 @test raw_inp.E == 42000
 # Poisson ratio
 @test raw_inp.ν == 0.2
+
+print("tests successful\n")

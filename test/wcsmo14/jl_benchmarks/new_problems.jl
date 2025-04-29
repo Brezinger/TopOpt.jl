@@ -2,8 +2,9 @@
 # module NewTopOptProblems
 # export NewPointLoadCantilever
 
-using Ferrite
+
 using TopOpt
+using Ferrite
 using TopOpt.TopOptProblems: RectilinearGrid, Metadata
 using TopOpt.TopOptProblems:
     left,
