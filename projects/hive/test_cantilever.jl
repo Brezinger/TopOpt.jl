@@ -35,18 +35,13 @@ black_elids = content.cellsets["Black"]
 # build a mask of length n_cells
 ncell = length(problem.black)
 blackmask = falses(ncell)
-blackmask[black_cells] .= true
+blackmask[black_elids] .= true
 
 # Define a finite element solver
 @timeit to "penalty def" penalty = TopOpt.PowerPenalty(3.0)
 @timeit to "solver def" begin
-    unmasked_solver = FEASolver(Direct, problem; xmin=xmin, penalty=penalty)
-    filter = DensityFilter(unmasked_solver, rmin=rmin)
-    solver = FEASolver(Direct, problem;
-                    xmin=xmin,
-                    penalty=penalty,
-                    filter = filt,
-                    black = blackmask)
+    solver = FEASolver(Direct, problem; xmin=xmin, penalty=penalty)
+    filter = DensityFilter(solver, rmin=rmin)
 end
 
 # Define compliance objective
@@ -65,8 +60,15 @@ end
 @timeit to "define problem" begin
     x0 = fill(V, length(solver.vars))
     nvar = length(solver.vars)
+    lb = zeros(nvar); ub = ones(nvar)
+    # set the bounds of the black cells to 1.0 and set the initial guess to 1.0
+    for i in black_elids
+        lb[i] = 1. - 1.e-9; ub[i] = 1.
+        x0[i] = 1.
+    end    
     model = Model(obj)
-    addvar!(model, zeros(nvar), ones(nvar))
+    addvar!(model, lb, ub)
+
     add_ineq_constraint!(model, constr) 
     alg = MMA87()
     tol = Tolerance(x=1e-3, f=1e-6, fabs=1e-3, frel=0.0, kkt=1e-3, infeas=1e-3)
