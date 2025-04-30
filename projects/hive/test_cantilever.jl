@@ -18,29 +18,41 @@ v = 0.3 # Poisson’s ratio
 f = 1.0; # downward force
 
 # Parameter settings
-V = 0.5 # volume fraction
+V = 0.3 # volume fraction
 # xmin = 0.001 # minimum density
 xmin = 1e-6 # minimum density
 rmin = 10.0 # density filter radius
 
-#nels = (300, 100)
-nels = (30, 10)
-sizes = (1.0, 1.0)
-@timeit to "problem def" problem_old = HalfMBB(Val{:Linear}, nels, sizes, E, v, f);
-filepath = joinpath(@__DIR__, "ownMBB.inp")
+filepath = joinpath(@__DIR__, "test_cantilever.inp")
 content = extract_inp(filepath)
-@timeit to "problem def" problem = InpStiffness(content; keep_load_cells=false)
+problem = InpStiffness(content; keep_load_cells=false)
+
+# get black cell ids
+black_elids = content.cellsets["Black"]
+#cell_elids = problem.metadata.cells[:,1]
+#black_cells = findall(elid -> elid in black_elids, cell_elids)
+
+# build a mask of length n_cells
+ncell = length(problem.black)
+blackmask = falses(ncell)
+blackmask[black_cells] .= true
 
 # Define a finite element solver
 @timeit to "penalty def" penalty = TopOpt.PowerPenalty(3.0)
-@timeit to "solver def" solver = FEASolver(Direct, problem; xmin=xmin, penalty=penalty);
+@timeit to "solver def" begin
+    unmasked_solver = FEASolver(Direct, problem; xmin=xmin, penalty=penalty)
+    filter = DensityFilter(unmasked_solver, rmin=rmin)
+    solver = FEASolver(Direct, problem;
+                    xmin=xmin,
+                    penalty=penalty,
+                    filter = filt,
+                    black = blackmask)
+end
 
 # Define compliance objective
 @timeit to "objective def" begin
     # Define compliance objective
     comp = Compliance(solver)
-    filter = DensityFilter(solver; rmin=rmin)
-    #filter = DensityFilter(Val(false), solver, rmin)
     obj = x -> comp(filter(PseudoDensities(x)))
 end
 
@@ -87,4 +99,6 @@ fig = visualize(
 )
 Makie.display(fig)
 
-Makie.save("test_import_MBB.png", fig)
+Makie.save("test_cantilever.png", fig)
+
+TopOpt.save_mesh("test_cantilever.vtu", problem, r.minimizer)

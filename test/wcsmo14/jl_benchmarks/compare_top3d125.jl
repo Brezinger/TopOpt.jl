@@ -96,4 +96,4 @@ Makie.save("jl-top3D125.matlab__$(nels).png", fig)
 
 print("top3d125 done")
 
-TopOpt.save_mesh("jl-top3D125.matlab__$(nels).vtk", problem, r.minimizer)
+TopOpt.save_mesh("jl-top3D125.matlab__$(nels).vtu", problem, r.minimizer)

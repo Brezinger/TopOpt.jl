@@ -116,12 +116,12 @@ function find_black_and_white(dh)
     black = falses(getncells(dh.grid))
     white = falses(getncells(dh.grid))
     if haskey(dh.grid.cellsets, "black")
-        for c in grid.cellsets["black"]
+        for c in dh.grid.cellsets["black"]
             black[c] = true
         end
     end
     if haskey(dh.grid.cellsets, "white")
-        for c in grid.cellsets["white"]
+        for c in dh.grid.cellsets["white"]
             white[c] = true
         end
     end
